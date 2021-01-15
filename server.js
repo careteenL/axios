@@ -1,5 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
+const { time } = require('console')
 
 const app = express()
 
@@ -24,6 +25,33 @@ app.use((req, res, next) => {
 
 app.get('/get', (req, res) => {
   res.json(req.query)
+})
+
+app.post('/post', (req, res) => {
+  res.json(req.body)
+})
+
+app.post('/post_timeout', (req, res) => {
+  let { timeout } = req.body
+  if (timeout) {
+    timeout = parseInt(timeout, 10)
+  } else {
+    timeout = 0
+  }
+  setTimeout(() => {
+    res.json(req.body)
+  }, timeout)
+})
+
+app.post('/post_status', (req, res) => {
+  let { code } = req.body
+  if (code) {
+    code = parseInt(code, 10)
+  } else {
+    code = 200
+  }
+  res.statusCode = code
+  res.json(req.body)
 })
 
 app.listen(8080)
