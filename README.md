@@ -49,7 +49,7 @@ app.use((req, res, next) => {
     'Access-Control-Allow-Origin': 'http://localhost:3000',
     'Access-Control-Allow-Credentials': true,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, name',
+    'Access-Control-Allow-Headers': 'Content-Type',
   })
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200)
@@ -121,8 +121,8 @@ yarn start
 ### 分析传参和返回值
 
 查看[aixos/index.d.ts](https://github.com/axios/axios/blob/master/index.d.ts)文件可得知axios所需参数和返回值类型定义如下
-![request-config](./assets/request-config.jpg)
-![response](./assets/response.jpg)
+![request-config](https://careteenl.github.io/images/%40careteen/axios/request-config.jpg)
+![response](https://careteenl.github.io/images/%40careteen/axios/response.jpg)
 
 ## 实现Axios
 
@@ -372,7 +372,7 @@ setTimeout(() => {
 }, 5000);
 ```
 可正常捕获到错误
-![error-offline](./assets/error-offline.jpg)
+![error-offline](https://careteenl.github.io/images/%40careteen/axios/error-offline.jpg)
 
 ### 模拟超时异常
 
@@ -415,7 +415,7 @@ axios({
 })
 ```
 可正常捕获到错误
-![error-timeout](./assets/error-timeout.jpg)
+![error-timeout](https://careteenl.github.io/images/%40careteen/axios/error-timeout.jpg)
 
 
 ### 模拟错误状态码
@@ -457,8 +457,117 @@ axios({
 })
 ```
 可正常捕获到错误
-![error-status](./assets/error-status.jpg)
+![error-status](https://careteenl.github.io/images/%40careteen/axios/error-status.jpg)
 
 ## 拦截器功能
 
+### 使用拦截器
 
+服务端设置`cors`时为`Access-Control-Allow-Headers`添加一项`name`，方便后续使用拦截器设置请求头。
+```js
+// server.js
+app.use((req, res, next) => {
+  res.set({
+    // ...
+    'Access-Control-Allow-Headers': 'Content-Type, name',
+  })
+  // ...
+})
+```
+
+在客户端使用`request和response`拦截器
+```ts
+// src/index.tsx
+axios.interceptors.request.use((config: AxiosRequestConfig): AxiosRequestConfig => {
+  config.headers.name += '1'
+  return config
+})
+axios.interceptors.request.use((config: AxiosRequestConfig): AxiosRequestConfig => {
+  config.headers.name += '2'
+  return config
+})
+axios.interceptors.request.use((config: AxiosRequestConfig): AxiosRequestConfig => {
+  config.headers.name += '3'
+  return config
+})
+
+axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '1'
+  return response
+})
+axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '2'
+  return response
+})
+axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '3'
+  return response
+})
+
+axios({
+  method: 'GET',
+  url: `${BASE_URL}/get`,
+  params: user,
+  headers: {
+    'Content-Type': 'application/json',
+    'name': 'Careteen',
+  },
+}).then((res: AxiosResponse) => {
+  console.log('res: ', res)
+  return res.data
+}).then((data: User) => {
+  console.log('data: ', data)
+}).catch((err: any) => {
+  console.log('err: ', err)
+})
+```
+ 
+查看请求头和响应体
+![interceptor-request](https://careteenl.github.io/images/%40careteen/axios/interceptor-request.jpg)
+![interceptor-response](https://careteenl.github.io/images/%40careteen/axios/interceptor-response.jpg)
+
+得出拦截器的规律是
+- 请求拦截器先添加的后执行
+- 响应拦截器先添加的先执行
+
+使用`axios.interceptors.request.eject`取消指定的拦截器
+```ts
+// src/index.tsx
+axios.interceptors.request.use((config: AxiosRequestConfig): AxiosRequestConfig => {
+  config.headers.name += '1'
+  return config
+})
+const interceptor_request2 = axios.interceptors.request.use((config: AxiosRequestConfig): AxiosRequestConfig => {
+  config.headers.name += '2'
+  return config
+})
+// + 从同步改为异步
+axios.interceptors.request.use((config: AxiosRequestConfig) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      config.headers.name += '3'
+      resolve(config)
+    }, 2000)
+  })
+})
+// + 弹出`interceptor_request2`
+axios.interceptors.request.eject(interceptor_request2)
+
+axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '1'
+  return response
+})
+const interceptor_response2 = axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '2'
+  return response
+})
+axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '3'
+  return response
+})
+// + 弹出`interceptor_response2`
+axios.interceptors.response.eject(interceptor_response2)
+```
+查看请求头和响应体
+![interceptor-request-eject](https://careteenl.github.io/images/%40careteen/axios/interceptor-request-eject.jpg)
+![interceptor-response-eject](https://careteenl.github.io/images/%40careteen/axios/interceptor-response-eject.jpg)

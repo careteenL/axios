@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios'
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 
 const BASE_URL = 'http://localhost:8080'
 
@@ -12,12 +12,46 @@ const user: User = {
   age: 25,
 }
 
+axios.interceptors.request.use((config: AxiosRequestConfig): AxiosRequestConfig => {
+  config.headers.name += '1'
+  return config
+})
+const interceptor_request2 = axios.interceptors.request.use((config: AxiosRequestConfig): AxiosRequestConfig => {
+  config.headers.name += '2'
+  return config
+})
+axios.interceptors.request.use((config: AxiosRequestConfig) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      config.headers.name += '3'
+      resolve(config)
+    }, 2000)
+  })  
+})
+axios.interceptors.request.eject(interceptor_request2)
+
+axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '1'
+  return response
+})
+const interceptor_response2 = axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '2'
+  return response
+})
+axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
+  response.data.name += '3'
+  return response
+})
+axios.interceptors.response.eject(interceptor_response2)
+
+// 使用拦截器
 axios({
   method: 'GET',
   url: `${BASE_URL}/get`,
-  data: user,
+  params: user,
   headers: {
     'Content-Type': 'application/json',
+    'name': 'Careteen',
   },
 }).then((res: AxiosResponse) => {
   console.log('res: ', res)
