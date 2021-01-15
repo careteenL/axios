@@ -63,7 +63,7 @@ export default class Axios {
           reject(`Error: timeout of ${timeout}ms exceeded`)
         }
       }
-      request.send()
+      request.send(body)
     })
   }
 }

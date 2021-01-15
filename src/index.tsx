@@ -12,24 +12,40 @@ const user: User = {
   age: 25,
 }
 
+axios({
+  method: 'GET',
+  url: `${BASE_URL}/get`,
+  data: user,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+}).then((res: AxiosResponse) => {
+  console.log('res: ', res)
+  return res.data
+}).then((data: User) => {
+  console.log('data: ', data)
+}).catch((err: any) => {
+  console.log('err: ', err)
+})
+
 // 使用 POST - 发送接口5s内断网
-setTimeout(() => {
-  axios({
-    method: 'POST',
-    url: `${BASE_URL}/post`,
-    data: user,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  }).then((res: AxiosResponse) => {
-    console.log('res: ', res)
-    return res.data
-  }).then((data: User) => {
-    console.log('data: ', data)
-  }).catch((err: any) => {
-    console.log('err: ', err)
-  })
-}, 5000);
+// setTimeout(() => {
+//   axios({
+//     method: 'POST',
+//     url: `${BASE_URL}/post`,
+//     data: user,
+//     headers: {
+//       'Content-Type': 'application/json',
+//     },
+//   }).then((res: AxiosResponse) => {
+//     console.log('res: ', res)
+//     return res.data
+//   }).then((data: User) => {
+//     console.log('data: ', data)
+//   }).catch((err: any) => {
+//     console.log('err: ', err)
+//   })
+// }, 5000);
 
 // 使用 POST - 错误状态码
 // axios({

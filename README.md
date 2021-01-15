@@ -312,7 +312,7 @@ let body: string | null = null;
 if (data && typeof data === 'object') {
   body = JSON.stringify(data)
 }
-request.send()
+request.send(body)
 ```
 
 ## 实现错误处理机制
@@ -458,3 +458,7 @@ axios({
 ```
 可正常捕获到错误
 ![error-status](./assets/error-status.jpg)
+
+## 拦截器功能
+
+
