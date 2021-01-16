@@ -1,19 +1,55 @@
 # 使用Typescript实现轻量级Axios
 
+![cover](https://careteenl.github.io/images/%40careteen/axios/cover.jpg)
+
 ## 目录
 
-- 背景
-- Axios原生使用及与其他请求库优缺点对比
-- 搭建环境
-- 实现`GET`
-- 实现`POST`
-- 实现错误处理机制
-- 实现拦截器功能
-- 实现任务取消功能
+- [背景](#背景)
+- [搭建环境](#搭建环境)
+  - [搭建简易后台提供接口](#搭建简易后台提供接口)
+  - [安装原生Axios并使用](#安装原生Axios并使用)
+  - [查看效果](#查看效果)
+  - [分析传参和返回值](#分析传参和返回值)
+- [实现Axios](#实现Axios)
+  - [createInstance](#createInstance)
+  - [类型定义](#类型定义)
+  - [Axios类实现GET方法](#Axios类实现GET方法)
+  - [类型声明小插曲](#类型声明小插曲)
+  - [Axios类实现POST方法](#Axios类实现POST方法)
+- [实现错误处理机制](#实现错误处理机制)
+  - [模拟网络异常](#模拟网络异常)
+  - [模拟超时异常](#模拟超时异常)
+  - [模拟错误状态码](#模拟错误状态码)
+  - [客户端调用超时接口](#客户端调用超时接口)
+- [拦截器功能](#拦截器功能)
+  - [使用拦截器](#使用拦截器)
+  - [实现拦截器](#实现拦截器)
+- [合并配置项](#合并配置项)
+- [实现请求与响应的转换](#实现请求与响应的转换)
+- [取消任务功能](#取消任务功能)
+  - [使用取消任务](#使用取消任务)
+  - [实现取消任务](#实现取消任务)
+- [总结](#总结)
 
+
+**文章首发于[@careteen/axios](https://github.com/careteenL/axios)(存放了下文涉及所有代码)，转载注明来源即可。**
 ## 背景
 
-## Axios原生使用及与其他请求库优缺点对比
+[axios](https://github.com/axios/axios)是[尤雨溪](https://github.com/yyx990803)大大推荐使用的。有如下几大优势
+- 支持`node`端和浏览器端
+  - 同样的`API`，`node`和浏览器全支持，平台切换无压力
+- 支持`Promise`
+  - 使用`Promise`管理异步，告别传统`callback`方式
+- 丰富的配置项
+  - 自动转换JSON数据
+  - 支持请求/响应拦截器配置
+  - 支持转换请求和响应数据
+  - 支持取消请求
+
+工作中`Vue`项目都一直使用`axios`做请求，最近才有点时间研究其底层思路。研究的目的一方面是自身能更好驾驭他，另一方面也是面试会考察的点（急功近利：））。
+
+下面将从使用到简易实现一层层剥开`Axios`。
+
 
 ## 搭建环境
 
@@ -409,7 +445,6 @@ app.post('/post_timeout', (req, res) => {
 })
 ```
 
-客户端调用超时接口
 ```ts
 // src/index.tsx
 axios({
@@ -642,9 +677,9 @@ export default class AxiosInterceptorManager<V> {
 
 通过上一节[使用拦截器](#使用拦截器)使用方定义的拦截器构造如下图所示队列
 
-![axios-interceptor](./assets/axios-interceptor.jpg)
+![axios-interceptor](https://careteenl.github.io/images/%40careteen/axios/axios-interceptor.jpg)
 ```ts
-// // axios/Axios.ts
+// axios/Axios.ts
 export default class Axios<T = any> {
   public interceptors = {
     request: new AxiosInterceptorManager<AxiosRequestConfig>(),
@@ -784,7 +819,8 @@ export default class Axios<T = any> {
 }
 ```
 
-## 使用取消任务
+## 取消任务功能
+### 使用取消任务
 
 平常工作需求中在某些场景（离开页面）下期望将没有完成的`promise`或者`xhr请求`取消掉。
 
@@ -815,7 +851,8 @@ axios({
 source.cancel('【cancel】: user cancel request')
 ```
 查看控制台可取消任务
-![ss](ss)
+
+![cancel-result](https://careteenl.github.io/images/%40careteen/axios/cancel-result.jpg)
 
 ## 实现取消任务
 
@@ -890,4 +927,8 @@ export default class Axios<T = any> {
 }
 ```
 
+## 总结
 
+通过上面简易代码实现了一个简版可用`axios`，还远远不够完善。
+
+目的也是在使用第三方优秀库的同时，通过`使用方式`倒推`底层实现思路`，再配合`阅读源码`，更好的驾驭他们。
