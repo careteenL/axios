@@ -1,16 +1,43 @@
 import qs from 'qs'
 import parseHeaders from 'parse-headers'
 
-import { AxiosRequestConfig, AxiosResponse } from './types'
+import { AxiosRequestConfig, AxiosResponse, Methods } from './types';
 import AxiosInterceptorManager, { OnFulfilled } from './AxiosInterceptorManager'
-import { Interceptor } from './AxiosInterceptorManager';
+import { Interceptor } from './AxiosInterceptorManager'
+
+let defaultConfig: AxiosRequestConfig = {
+  url: '',
+  methods: 'GET',
+  timeout: 0,
+  headers: {
+    common: {
+      accept: 'application/json',
+    }
+  }
+}
+
+const getStyleMethods: Methods[] = ['get', 'head', 'delete', 'options']
+const postStyleMethods: Methods[] = ['put', 'post', 'patch']
+const allMethods:  Methods[] = [...getStyleMethods, ...postStyleMethods]
+
+getStyleMethods.forEach((method: Methods) => {
+  defaultConfig.headers![method] = {}
+})
+postStyleMethods.forEach((method: Methods) => {
+  defaultConfig.headers![method] = {
+    'content-type': 'application/json',
+  }
+})
+
 
 export default class Axios<T = any> {
+  public defaultConfig: AxiosRequestConfig = defaultConfig
   public interceptors = {
     request: new AxiosInterceptorManager<AxiosRequestConfig>(),
     response: new AxiosInterceptorManager<AxiosResponse<T>>(),
   }
   request(config: AxiosRequestConfig): Promise<any> {
+    config.headers = Object.assign(this.defaultConfig.headers, config.headers)
     const chain: Array<Interceptor<AxiosRequestConfig> | Interceptor<AxiosResponse<T>>> = [
       {
         onFulfilled: this.dispatchRequest as unknown as OnFulfilled<AxiosRequestConfig>,
@@ -73,7 +100,17 @@ export default class Axios<T = any> {
       if (headers) {
         for (const key in headers) {
           if (Object.prototype.hasOwnProperty.call(headers, key)) {
-            request.setRequestHeader(key, headers[key])
+            if (key === 'common' || allMethods.includes(key as Methods)) {
+              if (key === 'common' || key === config.methods.toLowerCase()) {
+                for (const key2 in headers[key]) {
+                  if (Object.prototype.hasOwnProperty.call(headers[key], key2)) {
+                    request.setRequestHeader(key2, headers[key][key2])
+                  }
+                }
+              }
+            } else {
+              request.setRequestHeader(key, headers[key])
+            }
           }
         }
       }

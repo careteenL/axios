@@ -644,6 +644,7 @@ export default class AxiosInterceptorManager<V> {
 
 ![axios-interceptor](./assets/axios-interceptor.jpg)
 ```ts
+// // axios/Axios.ts
 export default class Axios<T = any> {
   public interceptors = {
     request: new AxiosInterceptorManager<AxiosRequestConfig>(),
@@ -674,4 +675,67 @@ export default class Axios<T = any> {
 }
 ```
 如上面步骤第三步将构造后的队列顺序执行，于此同时支持异步。
+
+## 合并配置项
+
+为`axios`设置默认配置项，如`methods`默认为`GET`方法等等
+```ts
+// axios/Axios.ts
+let defaultConfig: AxiosRequestConfig = {
+  url: '',
+  methods: 'GET',
+  timeout: 0,
+  headers: {
+    common: {
+      accept: 'application/json',
+    }
+  }
+}
+
+const getStyleMethods: Methods[] = ['get', 'head', 'delete', 'options']
+const postStyleMethods: Methods[] = ['put', 'post', 'patch']
+const allMethods:  Methods[] = [...getStyleMethods, ...postStyleMethods]
+
+getStyleMethods.forEach((method: Methods) => {
+  defaultConfig.headers![method] = {}
+})
+postStyleMethods.forEach((method: Methods) => {
+  defaultConfig.headers![method] = {
+    'content-type': 'application/json',
+  }
+})
+export default class Axios<T = any> {
+  public defaultConfig: AxiosRequestConfig = defaultConfig
+  request() {
+    // merge config
+    config.headers = Object.assign(this.defaultConfig.headers, config.headers)
+    // ...
+  }
+  dispatchRequest() {
+    // ...
+    if (headers) {
+      for (const key in headers) {
+        if (Object.prototype.hasOwnProperty.call(headers, key)) {
+          if (key === 'common' || allMethods.includes(key as Methods)) {
+            if (key === 'common' || key === config.methods.toLowerCase()) {
+              for (const key2 in headers[key]) {
+                if (Object.prototype.hasOwnProperty.call(headers[key], key2)) {
+                  request.setRequestHeader(key2, headers[key][key2])
+                }
+              }
+            }
+          } else {
+            request.setRequestHeader(key, headers[key])
+          }
+        }
+      }
+    }
+    // ...
+  }
+}
+```
+对请求头`headers`做处理的目的是为`post`风格的请求默认添加`'content-type': 'application/json'`，合并配置项区分是否为请求方法或者其他请求头配置。
+
+
+
 
