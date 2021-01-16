@@ -16,6 +16,8 @@ export interface AxiosRequestConfig {
   data?: Record<string, any>;
   headers?: Record<string, any>;
   timeout?: number; // ms
+  transformRequest?: (data: Record<string, any>, headers: Record<string, any>) => any;
+  transformResponse?: (data: any) => any;
 }
 
 export interface AxiosInstance {

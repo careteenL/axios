@@ -13,7 +13,17 @@ let defaultConfig: AxiosRequestConfig = {
     common: {
       accept: 'application/json',
     }
-  }
+  },
+  transformRequest: (data: Record<string, any>, headers: Record<string, any>) => {
+    headers['common']['content-type'] = 'application/x-www-form-urlencoded'
+    return JSON.stringify(data)
+  },
+  transformResponse: (response: any) => {
+    if (typeof response === 'string') {
+      return JSON.parse(response)
+    }
+    return response
+  },
 }
 
 const getStyleMethods: Methods[] = ['get', 'head', 'delete', 'options']
@@ -29,7 +39,6 @@ postStyleMethods.forEach((method: Methods) => {
   }
 })
 
-
 export default class Axios<T = any> {
   public defaultConfig: AxiosRequestConfig = defaultConfig
   public interceptors = {
@@ -37,6 +46,9 @@ export default class Axios<T = any> {
     response: new AxiosInterceptorManager<AxiosResponse<T>>(),
   }
   request(config: AxiosRequestConfig): Promise<any> {
+    if (config.transformRequest && config.data) {
+      config.data = config.transformRequest(config.data, config.headers = {})
+    }
     config.headers = Object.assign(this.defaultConfig.headers, config.headers)
     const chain: Array<Interceptor<AxiosRequestConfig> | Interceptor<AxiosResponse<T>>> = [
       {
@@ -90,6 +102,9 @@ export default class Axios<T = any> {
               headers: parseHeaders(request.getAllResponseHeaders()),
               config,
               request,
+            }
+            if (config.transformResponse) {
+              response.data = config.transformResponse(response.data)
             }
             resolve(response)
           } else {

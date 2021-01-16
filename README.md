@@ -736,6 +736,52 @@ export default class Axios<T = any> {
 ```
 对请求头`headers`做处理的目的是为`post`风格的请求默认添加`'content-type': 'application/json'`，合并配置项区分是否为请求方法或者其他请求头配置。
 
+## 实现请求与响应的转换
 
+在平常工作中存在`前后端并行开发或前端先行开发带来的命名不统一的常见问题`，解决方案一般为对对象或者数组属性做映射。类似解决方案如[@careteen/match](https://github.com/careteenL/match)。
+
+上述解决方案可放入`axios`提供的`transformRequest/transformResponse`转换函数中。
+
+```ts
+// axios/types.ts
+export interface AxiosRequestConfig {
+  // ...
+  transformRequest?: (data: Record<string, any>, headers: Record<string, any>) => any;
+  transformResponse?: (data: any) => any;
+}
+```
+
+实现方式即为在发请求前`request方法第一步`和发请求后`dispatchRequest方法接受响应体`时切入。
+```ts
+// axios/Axios.ts
+let defaultConfig: AxiosRequestConfig = {
+  // ...
+  transformRequest: (data: Record<string, any>, headers: Record<string, any>) => {
+    headers['common']['content-type'] = 'application/x-www-form-urlencoded'
+    return JSON.stringify(data)
+  },
+  transformResponse: (response: any) => {
+    return response.data
+  },
+}
+export default class Axios<T = any> {
+  request() {
+    if (config.transformRequest && config.data) {
+      config.data = config.transformRequest(config.data, config.headers = {})
+    }
+    // ...
+  }
+  dispatchRequest() {
+    // ...
+    request.onreadystatechange = () => {
+      if (config.transformResponse) {
+        request.response.data = config.transformResponse(request.response.data)
+      }
+      resolve(request.response)
+    }
+    // ...
+  }
+}
+```
 
 
