@@ -1,3 +1,5 @@
+import AxiosInterceptorManager from "./AxiosInterceptorManager";
+
 export type Methods = 
   | 'GET' | 'get'
   | 'POST' | 'post'
@@ -18,9 +20,13 @@ export interface AxiosRequestConfig {
 
 export interface AxiosInstance {
   (config: AxiosRequestConfig): Promise<any>;
+  interceptors: {
+    request: AxiosInterceptorManager<AxiosRequestConfig>;
+    response: AxiosInterceptorManager<AxiosResponse>
+  };
 }
 
-export interface AxiosResponse<T> {
+export interface AxiosResponse<T = any> {
   data: T;
   status: number;
   statusText: string;

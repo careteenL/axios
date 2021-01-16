@@ -203,7 +203,8 @@ export interface AxiosResponse<T> {
 > 方便理解没有考虑兼容性
 ```ts
 // axios/Axios.ts
-import qs, { parse } from 'qs'
+import qs from 'qs'
+import parseHeaders from 'parse-headers'
 import { AxiosRequestConfig, AxiosResponse } from './types'
 
 export default class Axios {
@@ -235,7 +236,7 @@ export default class Axios {
               data: request.response,
               status: request.status,
               statusText: request.statusText,
-              headers: parse(request.getAllResponseHeaders()),
+              headers: parseHeaders(request.getAllResponseHeaders()),
               config,
               request,
             }
@@ -251,6 +252,22 @@ export default class Axios {
 }
 ```
 上面代码已经可以满足[安装原生Axios并使用](#安装原生Axios并使用)章节，下面将继续扩展其他方法。
+
+### 类型声明小插曲
+
+由于使用的第三方库`parse-headers`目前没有`@types/parse-headers`，所以使用时会报TS错。一方面由于时间问题不会去为此写声明文件，另一方面此次核心是实现`axios`，故在当前项目根目录下新建`typings/parse-headers.d.ts`
+```ts
+// typings/parse-headers.d.ts
+declare module 'parse-headers'
+```
+然后再修改`tsconfig.json`配置
+```json
+// tsconfig.json
+"include": [
+  "src",
+  "typings" // +
+]
+```
 
 ### Axios类实现POST方法
 
@@ -568,6 +585,93 @@ axios.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
 // + 弹出`interceptor_response2`
 axios.interceptors.response.eject(interceptor_response2)
 ```
-查看请求头和响应体
+
+`2s`后查看请求头和响应体
 ![interceptor-request-eject](https://careteenl.github.io/images/%40careteen/axios/interceptor-request-eject.jpg)
 ![interceptor-response-eject](https://careteenl.github.io/images/%40careteen/axios/interceptor-response-eject.jpg)
+
+
+### 实现拦截器
+
+通过使用拦截器`axios.interceptors.request.use`推导类型定义。
+```ts
+// axios/types.ts
+import AxiosInterceptorManager from "./AxiosInterceptorManager";
+export interface AxiosInstance {
+  (config: AxiosRequestConfig): Promise<any>;
+  interceptors: {
+    request: AxiosInterceptorManager<AxiosRequestConfig>;
+    response: AxiosInterceptorManager<AxiosResponse>
+  };
+}
+```
+
+主要是定义`AxiosInterceptorManager`类以及`use、eject`方法。
+```ts
+// axios/AxiosInterceptorManager.ts
+export interface OnFulfilled<V> {
+  (value: V): V | PromiseLike<V> | undefined | null;
+}
+
+export interface OnRejected {
+  (error: any): any;
+}
+
+export interface Interceptor<V> {
+  onFulfilled?: OnFulfilled<V>;
+  onRejected?: OnRejected;
+}
+
+export default class AxiosInterceptorManager<V> {
+  public interceptors: Array<Interceptor<V> | null> = []
+  use(onFulfilled?: OnFulfilled<V>, onRejected?: OnRejected): number {
+    this.interceptors.push({
+      onFulfilled,
+      onRejected
+    })
+    return this.interceptors.length - 1
+  }
+  eject(id: number) {
+    if (this.interceptors[id]) {
+      this.interceptors[id] = null
+    }
+  }
+}
+
+```
+
+通过上一节[使用拦截器](#使用拦截器)使用方定义的拦截器构造如下图所示队列
+
+![axios-interceptor](./assets/axios-interceptor.jpg)
+```ts
+export default class Axios<T = any> {
+  public interceptors = {
+    request: new AxiosInterceptorManager<AxiosRequestConfig>(),
+    response: new AxiosInterceptorManager<AxiosResponse<T>>(),
+  }
+  request(config: AxiosRequestConfig): Promise<any> {
+    const chain: Array<Interceptor<AxiosRequestConfig> | Interceptor<AxiosResponse<T>>> = [
+      {
+        onFulfilled: this.dispatchRequest as unknown as OnFulfilled<AxiosRequestConfig>,
+      }
+    ]
+    // 1. 请求拦截器 - 先添加后执行
+    this.interceptors.request.interceptors.forEach((interceptor: Interceptor<AxiosRequestConfig> | null) => {
+      interceptor && chain.unshift(interceptor)
+    })
+    // 2. 响应拦截器 - 先添加先执行
+    this.interceptors.response.interceptors.forEach((interceptor: Interceptor<AxiosResponse<T>> | null) => {
+      interceptor && chain.push(interceptor)
+    })
+    // 3. 按构造后的顺序执行
+    let promise: Promise<any> = Promise.resolve(config)
+    while (chain.length) {
+      const { onFulfilled, onRejected } = chain.shift()!
+      promise = promise.then(onFulfilled  as unknown as OnFulfilled<AxiosRequestConfig>, onRejected)
+    }
+    return promise
+  }
+}
+```
+如上面步骤第三步将构造后的队列顺序执行，于此同时支持异步。
+
