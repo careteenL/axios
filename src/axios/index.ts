@@ -1,5 +1,6 @@
 import Axios from './Axios'
 import { AxiosInstance } from './types'
+import { CancelToken, isCancel } from './cancel'
 
 const createInstance = (): AxiosInstance => {
   const context = new Axios()
@@ -9,5 +10,8 @@ const createInstance = (): AxiosInstance => {
 }
 
 const axios = createInstance()
+axios.CancelToken = new CancelToken()
+axios.isCancel = isCancel
 
 export default axios
+export * from './types'

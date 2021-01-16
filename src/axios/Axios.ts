@@ -142,6 +142,12 @@ export default class Axios<T = any> {
           reject(`Error: timeout of ${timeout}ms exceeded`)
         }
       }
+      if (config.cancelToken) {
+        config.cancelToken.then((reason: string) => {
+          request.abort()
+          reject(reason)
+        })
+      }
       request.send(body)
     })
   }

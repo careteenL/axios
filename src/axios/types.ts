@@ -1,4 +1,5 @@
-import AxiosInterceptorManager from "./AxiosInterceptorManager";
+import AxiosInterceptorManager from "./AxiosInterceptorManager"
+import { CancelToken } from "./cancel"
 
 export type Methods = 
   | 'GET' | 'get'
@@ -18,6 +19,7 @@ export interface AxiosRequestConfig {
   timeout?: number; // ms
   transformRequest?: (data: Record<string, any>, headers: Record<string, any>) => any;
   transformResponse?: (data: any) => any;
+  cancelToken?: Promise<any>;
 }
 
 export interface AxiosInstance {
@@ -26,6 +28,8 @@ export interface AxiosInstance {
     request: AxiosInterceptorManager<AxiosRequestConfig>;
     response: AxiosInterceptorManager<AxiosResponse>
   };
+  CancelToken: CancelToken;
+  isCancel: (reaseon: any) => boolean;
 }
 
 export interface AxiosResponse<T = any> {

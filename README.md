@@ -784,4 +784,110 @@ export default class Axios<T = any> {
 }
 ```
 
+## 使用取消任务
+
+平常工作需求中在某些场景（离开页面）下期望将没有完成的`promise`或者`xhr请求`取消掉。
+
+可先观察`axios`的使用
+```ts
+const CancelToken = axios.CancelToken
+const source = CancelToken.source()
+axios({
+  method: 'POST',
+  url: `${BASE_URL}/post_timeout`,
+  timeout: 3000,
+  data: {
+    timeout: 2000,
+  },
+  cancelToken: source.token,
+}).then((res: AxiosResponse) => {
+  console.log('res: ', res)
+  return res.data
+}).then((data: User) => {
+  console.log('data: ', data)
+}).catch((err: any) => {
+  if (axios.isCancel(err)) {
+    console.log('cancel: ', err)
+  } else {
+    console.log('err: ', err)
+  }
+})
+source.cancel('【cancel】: user cancel request')
+```
+查看控制台可取消任务
+![ss](ss)
+
+## 实现取消任务
+
+> 实现思路类似于[如何终止Promise](https://github.com/careteenL/blog/blob/master/src/20181124-promise/README.md#%E7%BB%88%E6%AD%A2promise)，此文章更易理解。
+
+根据使用倒推类型定义
+```ts
+// axios/types.ts
+export interface AxiosRequestConfig {
+  // ...
+  cancelToken?: Promise<any>;
+}
+export interface AxiosInstance {
+  // ...
+  CancelToken: CancelToken;
+  isCancel: (reaseon: any) => boolean;
+}
+```
+
+根据使用倒推挂载的`CancelToken、isCancel`
+```ts
+import { CancelToken, isCancel } from './cancel'
+// ...
+axios.CancelToken = new CancelToken()
+axios.isCancel = isCancel
+
+export default axios
+```
+
+新建`cancel.ts`文件实现取消功能
+```ts
+// axios/cancel.ts
+export class Cancel {
+  public reason: string
+  constructor(reason: string) {
+    this.reason = reason
+  }
+}
+
+export const isCancel = (reason: any) => {
+  return reason instanceof Cancel
+}
+
+export class CancelToken {
+  public resolve: any
+  source() {
+    return {
+      token: new Promise((resolve) => {
+        this.resolve = resolve
+      }),
+      cancel: (reason: string) => {
+        this.resolve(new Cancel(reason))
+      }
+    }
+  }
+}
+```
+
+在合适的时机（使用方指定场景下调用`source.cancel`方法），触发`request.abort()`进而取消任务。
+```ts
+export default class Axios<T = any> {
+  dispatchRequest() {
+    // ...
+    if (config.cancelToken) {
+      config.cancelToken.then((reason: string) => {
+        request.abort()
+        reject(reason)
+      })
+    }
+    request.send(body)
+  }
+}
+```
+
 
