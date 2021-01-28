@@ -48,7 +48,9 @@
   - 客户端支持防御`XSRF`
 
 > **`axios`与`ajax`、`fetch`对比**
+
 > `ajax`是指一种创建交互式网页应用的网页开发技术，并且可以做到无需重新加载整个网页的情况下，能够更新部分网页，也叫作局部更新。
+
 > `fetch`是基于`promise`设计的原生请求，没有使用`XMLHttpRequest`对象。优缺点如下
 >   - 更加底层，提供的API丰富（request, response）
 >   - 脱离了XHR，是ES规范里新的实现方式
@@ -249,6 +251,8 @@ export interface AxiosResponse<T> {
 - 调用`request.send()`发送请求
 
 > 方便理解没有考虑兼容性
+
+> 源码会判断当前是`浏览器`还是`node`环境。`node`环境下会借助`http`，`浏览器`实现大致如下
 ```ts
 // axios/Axios.ts
 import qs from 'qs'
